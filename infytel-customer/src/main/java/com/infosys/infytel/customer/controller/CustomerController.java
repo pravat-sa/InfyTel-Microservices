@@ -5,6 +5,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,6 +27,12 @@ import com.infosys.infytel.customer.service.CustomerService;
 public class CustomerController {
 
 	Logger logger = LoggerFactory.getLogger(this.getClass());
+	
+	@Value("friendms.url")
+	private String friendMSUrl;
+
+	@Value("planms.url")
+	private String planMSUrl;
 
 	@Autowired
 	CustomerService custService;
@@ -52,9 +59,9 @@ public class CustomerController {
 		
 		CustomerDTO custDTO = custService.getCustomerProfile(phoneNo);
 		
-		custDTO.setFriendAndFamily(new RestTemplate().getForObject("http://localhost:8300/customers/"+phoneNo, List.class));
+		custDTO.setFriendAndFamily(new RestTemplate().getForObject(friendMSUrl+phoneNo, List.class));
 		
-		PlanDTO planDTO = new RestTemplate().getForObject("http://localhost:8400/plans/"+custDTO.getCurrentPlan().getPlanId(), PlanDTO.class);
+		PlanDTO planDTO = new RestTemplate().getForObject(planMSUrl+custDTO.getCurrentPlan().getPlanId(), PlanDTO.class);
 		custDTO.setCurrentPlan(planDTO);
 		
 		return custDTO;
