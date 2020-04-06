@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
+import org.springframework.cloud.netflix.ribbon.RibbonClient;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,13 +27,14 @@ import com.infosys.infytel.customer.service.CustomerService;
 @RestController
 @CrossOrigin
 @RefreshScope
+@RibbonClient(name = "custribbon")
 public class CustomerController {
 
 	Logger logger = LoggerFactory.getLogger(this.getClass());
 	
-	@Value("${friendms.url}")
-	String friendMSUrl;
-
+	@Autowired
+	RestTemplate restTemplate;
+	
 	@Value("${planms.url}")
 	String planMSUrl;
 
@@ -61,7 +63,7 @@ public class CustomerController {
 		
 		CustomerDTO custDTO = custService.getCustomerProfile(phoneNo);
 		
-		custDTO.setFriendAndFamily(new RestTemplate().getForObject(friendMSUrl+phoneNo, List.class));
+		custDTO.setFriendAndFamily(restTemplate.getForObject("http://custribbon/customers/"+phoneNo, List.class));
 		
 		PlanDTO planDTO = new RestTemplate().getForObject(planMSUrl+custDTO.getCurrentPlan().getPlanId(), PlanDTO.class);
 		custDTO.setCurrentPlan(planDTO);
