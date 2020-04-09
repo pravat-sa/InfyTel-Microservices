@@ -1,11 +1,16 @@
 package com.infosys.infytel.customer.controller;
 
+import java.net.URI;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.client.ServiceInstance;
+import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.cloud.netflix.ribbon.RibbonClient;
 import org.springframework.http.MediaType;
@@ -21,7 +26,9 @@ import org.springframework.web.client.RestTemplate;
 import com.infosys.infytel.customer.dto.CustomerDTO;
 import com.infosys.infytel.customer.dto.LoginDTO;
 import com.infosys.infytel.customer.dto.PlanDTO;
+import com.infosys.infytel.customer.service.CustomerHystixService;
 import com.infosys.infytel.customer.service.CustomerService;
+import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
 
 
 @RestController
@@ -33,13 +40,10 @@ public class CustomerController {
 	Logger logger = LoggerFactory.getLogger(this.getClass());
 	
 	@Autowired
-	RestTemplate restTemplate;
-	
-	@Value("${planms.url}")
-	String planMSUrl;
-
-	@Autowired
 	CustomerService custService;
+	
+	@Autowired
+	CustomerHystixService hystrixService;
 
 	// Create a new customer
 	@PostMapping(value = "/customers",  consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -56,19 +60,28 @@ public class CustomerController {
 	}
 
 	// Fetches full profile of a specific customer
+	//@HystrixCommand(fallbackMethod = "getCustomerProfileFallback")
 	@GetMapping(value = "/customers/{phoneNo}", produces = MediaType.APPLICATION_JSON_VALUE)
-	public CustomerDTO getCustomerProfile(@PathVariable Long phoneNo) {
+	public CustomerDTO getCustomerProfile(@PathVariable Long phoneNo) throws InterruptedException, ExecutionException {
 
 		logger.info("Profile request for customer {}", phoneNo);
+		System.out.println("=====In Profile ====="+ phoneNo);
+		
 		
 		CustomerDTO custDTO = custService.getCustomerProfile(phoneNo);
 		
-		custDTO.setFriendAndFamily(restTemplate.getForObject("http://custribbon/customers/"+phoneNo, List.class));
+		Future<List<Long>> family = hystrixService.getFamilyDetails(phoneNo);
+		Future<PlanDTO> planDTO = hystrixService.getPlans(custDTO.getCurrentPlan().getPlanId());
 		
-		PlanDTO planDTO = new RestTemplate().getForObject(planMSUrl+custDTO.getCurrentPlan().getPlanId(), PlanDTO.class);
-		custDTO.setCurrentPlan(planDTO);
+		custDTO.setFriendAndFamily(family.get());
+		custDTO.setCurrentPlan(planDTO.get());		
 		
 		return custDTO;
+	}
+	
+	public CustomerDTO getCustomerProfileFallback(Long phoneNo) {
+		System.out.println("======In fallback====="+ phoneNo);
+		return new CustomerDTO();
 	}
 
 
