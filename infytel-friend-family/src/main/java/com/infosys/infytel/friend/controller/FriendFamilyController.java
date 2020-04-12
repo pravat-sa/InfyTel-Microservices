@@ -35,7 +35,10 @@ public class FriendFamilyController {
 	// Create Friend Family
 	@GetMapping(value = "/customers/{phoneNo}", produces = MediaType.APPLICATION_JSON_VALUE)
 	public List<Long> getFriendAndFamily(@PathVariable Long phoneNo) {
-		logger.info("Creation request for customer {} with data {}", phoneNo);
+		//logger.info("Creation request for customer {} with data {}", phoneNo);
+		/*
+		 * if(phoneNo == 9009009001L) { throw new RuntimeException(); }
+		 */
 		return friendService.getFriendAndFamily(phoneNo);
 	}
 
