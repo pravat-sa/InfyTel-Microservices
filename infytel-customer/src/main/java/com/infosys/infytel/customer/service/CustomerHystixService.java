@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import com.infosys.infytel.customer.dto.PlanDTO;
+import com.infosys.infytel.customer.interfaces.CustomerFriendFeign;
+import com.infosys.infytel.customer.interfaces.CustomerPlanFeign;
 import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
 import com.netflix.hystrix.contrib.javanica.command.AsyncResult;
 
@@ -17,13 +19,19 @@ public class CustomerHystixService {
 	@Autowired
 	RestTemplate template;
 	
+	@Autowired
+	CustomerPlanFeign planFeign;
+	
+	@Autowired
+	CustomerFriendFeign friendFeign;
+	
 	@HystrixCommand
 	public Future<PlanDTO> getPlans(Integer planId){
 		return new AsyncResult<PlanDTO>() {
 			
 			@Override
 			public PlanDTO invoke() {
-				return template.getForObject("http://PLANMS/plans/"+planId, PlanDTO.class);
+				return planFeign.getPlan(planId);
 			}
 		};
 		
@@ -35,7 +43,7 @@ public class CustomerHystixService {
 			
 			@Override
 			public List<Long> invoke() {
-				return template.getForObject("http://FRIENDMS/customers/"+phoneNo, List.class);
+				return friendFeign.getFamilyDetails(phoneNo);
 			}
 		};
 		
